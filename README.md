@@ -2,6 +2,6 @@
 
 ```bash
 git add .
-git commit -m "size not working"
+git commit -m "by name working"
 git push origin main
 ```  
