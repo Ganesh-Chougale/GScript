@@ -4,29 +4,45 @@ function doGet() {
   return HtmlService.createHtmlOutputFromFile('index')
                      .setTitle("Drive Upload Syncer");
 }
-function uploadFile(name, data, folderId) {
+function getExistingFilesBySize(folderId) {
+  const folder = DriveApp.getFolderById(folderId);
+  const files = folder.getFiles();
+  const filesBySize = {};
+  while (files.hasNext()) {
+    const file = files.next();
+    const size = file.getSize();
+    // Store the size and the file name(s)
+    if (!filesBySize[size]) {
+      filesBySize[size] = [];
+    }
+    filesBySize[size].push(file.getName());
+  }
+  return filesBySize;
+}
+function uploadFile(name, data, fileType, folderId) {
   try {
     const folder = DriveApp.getFolderById(folderId);
     const files = folder.getFilesByName(name);
-    // Decode the Base64 string to a byte array.
+    // Decode the Base64 string to a byte array and create a Blob.
     const decodedData = Utilities.base64Decode(data.split(',')[1]);
-    // Use Utilities.newBlob() to convert the byte array into a Blob.
-    const fileBlob = Utilities.newBlob(decodedData, MimeType.JPEG, name);
+    const fileBlob = Utilities.newBlob(decodedData, fileType, name);
     const newSize = fileBlob.getBytes().length;
+    // Check for a duplicate with the same name and size
     if (files.hasNext()) {
       const existingFile = files.next();
-      const existingSize = existingFile.getSize();
-      if (existingSize === newSize) {
+      if (existingFile.getSize() === newSize) {
         return `Duplicate detected: ${name} (same size). Skipped upload.`;
-      } else {
-        existingFile.setTrashed(true);
-        folder.createFile(fileBlob);
-        return `Replaced: ${name} (new size uploaded).`;
       }
-    } else {
-      folder.createFile(fileBlob);
-      return `Uploaded: ${name}`;
     }
+    // Check for a duplicate with a different name but same size
+    const existingFilesBySize = getExistingFilesBySize(folderId);
+    if (existingFilesBySize[newSize]) {
+      const existingNames = existingFilesBySize[newSize].join(', ');
+      return `Potential duplicate detected! File "${name}" has the same size as existing file(s): ${existingNames}. Please rename the file before uploading.`;
+    }
+    // No duplicate found, proceed with upload
+    folder.createFile(fileBlob);
+    return `Uploaded: ${name}`;
   } catch (e) {
     return `Error uploading ${name}: ${e.message}`;
   }
@@ -82,23 +98,23 @@ Upload_Syncer\index.html:
 <!DOCTYPE html>
 <html>
 <head>
-  <base target="_top">
-  <title>Drive Upload Syncer</title>
-  <style>
-    #dropZone { border: 2px dashed #aaa; padding: 20px; margin-top: 10px; cursor: pointer; }
-    #dropZone.dragover { background-color: #eee; }
-    progress { width: 100%; margin-top: 10px; }
-    select { display: block; margin-top: 5px; }
-  </style>
+  <base target="_top">
+  <title>Drive Upload Syncer</title>
+  <style>
+    #dropZone { border: 2px dashed #aaa; padding: 20px; margin-top: 10px; cursor: pointer; }
+    #dropZone.dragover { background-color: #eee; }
+    progress { width: 100%; margin-top: 10px; }
+    select { display: block; margin-top: 5px; }
+  </style>
 </head>
 <body>
-  <h1>Upload Files to Drive</h1>
-  <div id="folderDropdown"></div>
-  <div id="dropZone">Drop files here or click to select</div>
-  <input type="file" id="file" multiple style="margin-top: 10px;">
-  <button onclick="uploadFiles()">Upload</button>
-  <progress id="progressBar" value="0" max="100"></progress>
-  <div id="status"></div>
+  <h1>Upload Files to Drive</h1>
+  <div id="folderDropdown"></div>
+  <div id="dropZone">Drop files here or click to select</div>
+  <input type="file" id="file" multiple style="margin-top: 10px;">
+  <button onclick="uploadFiles()">Upload</button>
+  <progress id="progressBar" value="0" max="100"></progress>
+  <div id="status"></div>
 </body>
 <script>
 let folderConfig = {};
@@ -146,12 +162,11 @@ function uploadFiles(files=null) {
   for (let f of filesToUpload) {
     const reader = new FileReader();
     reader.onload = function(e) {
-      // Send the Base64-encoded string and file metadata to the server.
       google.script.run.withSuccessHandler(msg => {
         document.getElementById('status').innerHTML += `<p>${msg}</p>`;
         uploaded++;
         progress.value = (uploaded / filesToUpload.length) * 100;
-      }).uploadFile(f.name, e.target.result, selectedFolderId);
+      }).uploadFile(f.name, e.target.result, f.type, selectedFolderId);
     };
     reader.readAsDataURL(f);
   }
