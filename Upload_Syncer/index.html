@@ -3,86 +3,334 @@
 <head>
   <base target="_top">
   <title>Drive Upload Syncer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    #dropZone { border: 2px dashed #aaa; padding: 20px; margin-top: 10px; cursor: pointer; }
-    #dropZone.dragover { background-color: #eee; }
-    progress { width: 100%; margin-top: 10px; }
-    select { display: block; margin-top: 5px; }
+    :root {
+      --primary-color: #4285F4;
+      --secondary-color: #34A853;
+      --bg-color: #f8f9fa;
+      --text-color: #3c4043;
+      --border-color: #dadce0;
+      --shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      margin: 0;
+    }
+    
+    .container {
+      background-color: #fff;
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      width: 100%;
+      max-width: 600px;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      font-size: 24px;
+      color: var(--primary-color);
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    
+    .ui-group {
+      margin-bottom: 16px;
+    }
+
+    #folderDropdown select,
+    button,
+    progress {
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 8px;
+    }
+
+    #folderDropdown select {
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background-color: #f1f3f4;
+      font-size: 16px;
+    }
+
+    #dropZone {
+      border: 2px dashed var(--border-color);
+      border-radius: 8px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      color: #70757a;
+      transition: background-color 0.2s ease-in-out;
+    }
+    
+    #dropZone:hover, #dropZone.dragover {
+      background-color: #f1f3f4;
+    }
+
+    #file {
+      display: none;
+    }
+
+    button {
+      padding: 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 4px;
+      background-color: var(--primary-color);
+      color: #fff;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    button:hover {
+      background-color: #3b78e7;
+    }
+
+    progress {
+      height: 8px;
+      -webkit-appearance: none;
+      appearance: none;
+      border-radius: 4px;
+      background-color: #e8eaed;
+    }
+
+    progress::-webkit-progress-bar {
+      border-radius: 4px;
+      background-color: #e8eaed;
+    }
+
+    progress::-webkit-progress-value {
+      border-radius: 4px;
+      background-color: var(--secondary-color);
+    }
+    
+    progress::-moz-progress-bar {
+      border-radius: 4px;
+      background-color: var(--secondary-color);
+    }
+    
+    #status {
+      margin-top: 16px;
+      padding: 12px;
+      background-color: #eaf1fb;
+      border-left: 4px solid var(--primary-color);
+      border-radius: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+    
+    #status p {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 10px;
+      }
+      .container {
+        padding: 16px;
+      }
+    }
+    
+    /* Custom Dialog Styles */
+    .dialog-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .dialog-content {
+      background: #fff;
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      width: 90%;
+      max-width: 400px;
+    }
+    
+    .dialog-content h2 {
+      margin-top: 0;
+      font-size: 20px;
+      color: var(--primary-color);
+    }
+    
+    .dialog-content ul {
+      list-style-type: none;
+      padding: 0;
+      max-height: 150px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      padding: 10px;
+      border-radius: 4px;
+      background: #f8f9fa;
+    }
+    
+    .dialog-content li {
+      margin-bottom: 5px;
+      font-size: 14px;
+    }
+    
+    .dialog-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .dialog-buttons button {
+      width: auto;
+    }
   </style>
 </head>
 <body>
-  <h1>Upload Files to Drive</h1>
-  <div id="folderDropdown"></div>
-  <div id="dropZone">Drop files here or click to select</div>
-  <input type="file" id="file" multiple style="margin-top: 10px;">
-  <button onclick="uploadFiles()">Upload</button>
-  <progress id="progressBar" value="0" max="100"></progress>
-  <div id="status"></div>
+  <div class="container">
+    <h1>Drive Upload Syncer</h1>
+    <div class="ui-group">
+      <div id="folderDropdown"></div>
+    </div>
+    <div class="ui-group">
+      <div id="dropZone">
+        <p>Drop files here or click to select</p>
+      </div>
+      <input type="file" id="file" multiple>
+    </div>
+    <button onclick="showConfirmationDialog()">Upload</button>
+    <div class="ui-group">
+      <progress id="progressBar" value="0" max="100"></progress>
+    </div>
+    <div id="status"></div>
+  </div>
+
+  <div id="confirmationDialog" class="dialog-overlay">
+    <div class="dialog-content">
+      <h2>Confirm Upload</h2>
+      <p>Are you sure you want to upload the following files?</p>
+      <ul id="fileList"></ul>
+      <div class="dialog-buttons">
+        <button onclick="hideConfirmationDialog()">Cancel</button>
+        <button onclick="startUpload()">Upload</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 <script>
-let folderConfig = {};
-let selectedFolderId = null;
+  let folderConfig = {};
+  let selectedFolderId = null;
+  let logCounter = 1;
+  let filesToUpload = null; // Store files globally for dialog
 
-google.script.run.withSuccessHandler(htmlContent => {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(htmlContent, 'text/html');
-  const jsonData = doc.getElementById('folderData').textContent;
-  folderConfig = JSON.parse(jsonData);
-  buildDropdown('folderDropdown', folderConfig);
-}).getFolderConfigHtml();
+  google.script.run.withSuccessHandler(htmlContent => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlContent, 'text/html');
+    const jsonData = doc.getElementById('folderData').textContent;
+    folderConfig = JSON.parse(jsonData);
+    buildDropdown('folderDropdown', folderConfig);
+  }).getFolderConfigHtml();
 
-function getNestedObj(obj, path) {
-  return path.reduce((acc, key) => (acc && acc[key] ? acc[key] : null), obj);
-}
+  function getNestedObj(obj, path) {
+    return path.reduce((acc, key) => (acc && acc[key] ? acc[key] : null), obj);
+  }
 
-function buildDropdown(containerId, obj, path=[]) {
-  const container = document.getElementById(containerId);
-  const select = document.createElement('select');
-  select.innerHTML = '<option value="">--Select Folder--</option>';
-  for (const key in obj) select.innerHTML += `<option value="${key}">${key}</option>`;
-  container.appendChild(select);
-  select.onchange = function() {
-    const existing = Array.from(container.querySelectorAll('select'));
-    const index = existing.indexOf(select);
-    existing.slice(index+1).forEach(e => e.remove());
-    const val = select.value;
-    if (!val) { selectedFolderId = null; return; }
-    const newPath = [...path, val];
-    const nextObj = getNestedObj(folderConfig, newPath);
-    if (typeof nextObj === 'string') {
-      selectedFolderId = nextObj;
-      console.log("Selected folder ID:", selectedFolderId);
-    } else if (typeof nextObj === 'object') {
-      buildDropdown(containerId, nextObj, newPath);
+  function buildDropdown(containerId, obj, path=[]) {
+    const container = document.getElementById(containerId);
+    const select = document.createElement('select');
+    select.innerHTML = '<option value="">--Select Folder--</option>';
+    for (const key in obj) select.innerHTML += `<option value="${key}">${key}</option>`;
+    container.appendChild(select);
+    select.onchange = function() {
+      const existing = Array.from(container.querySelectorAll('select'));
+      const index = existing.indexOf(select);
+      existing.slice(index + 1).forEach(e => e.remove());
+      const val = select.value;
+      if (!val) { selectedFolderId = null; return; }
+      const newPath = [...path, val];
+      const nextObj = getNestedObj(folderConfig, newPath);
+      if (typeof nextObj === 'string') {
+        selectedFolderId = nextObj;
+        console.log("Selected folder ID:", selectedFolderId);
+      } else if (typeof nextObj === 'object') {
+        buildDropdown(containerId, nextObj, newPath);
+      }
+    };
+  }
+
+  function showConfirmationDialog() {
+    filesToUpload = document.getElementById('file').files;
+    if (!selectedFolderId) {
+      alert("Please select a folder!");
+      return;
+    }
+    if (!filesToUpload.length) {
+      alert("Select at least one file!");
+      return;
+    }
+
+    const fileListElement = document.getElementById('fileList');
+    fileListElement.innerHTML = '';
+    for (let i = 0; i < filesToUpload.length; i++) {
+      const li = document.createElement('li');
+      li.textContent = filesToUpload[i].name;
+      fileListElement.appendChild(li);
+    }
+    document.getElementById('confirmationDialog').style.display = 'flex';
+  }
+
+  function hideConfirmationDialog() {
+    document.getElementById('confirmationDialog').style.display = 'none';
+  }
+
+  function startUpload() {
+    hideConfirmationDialog();
+    const progress = document.getElementById('progressBar');
+    let uploaded = 0;
+    for (let f of filesToUpload) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        google.script.run.withSuccessHandler(msg => {
+          document.getElementById('status').innerHTML += `<p>${logCounter++}. ${msg}</p>`;
+          uploaded++;
+          progress.value = (uploaded / filesToUpload.length) * 100;
+        }).uploadFile(f.name, e.target.result, f.type, selectedFolderId);
+      };
+      reader.readAsDataURL(f);
     }
   }
-}
 
-function uploadFiles(files=null) {
-  const filesToUpload = files || document.getElementById('file').files;
-  if (!selectedFolderId) { alert("Please select a folder!"); return; }
-  if (!filesToUpload.length) { alert("Select at least one file!"); return; }
-  const names = Array.from(filesToUpload).map(f => f.name).join('\n');
-  if (!confirm("Upload these files?\n" + names)) return;
-  const progress = document.getElementById('progressBar');
-  let uploaded = 0;
-  for (let f of filesToUpload) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      google.script.run.withSuccessHandler(msg => {
-        document.getElementById('status').innerHTML += `<p>${msg}</p>`;
-        uploaded++;
-        progress.value = (uploaded / filesToUpload.length) * 100;
-      }).uploadFile(f.name, e.target.result, f.type, selectedFolderId);
-    };
-    reader.readAsDataURL(f);
-  }
-}
-
-const dropZone = document.getElementById('dropZone');
-dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
-dropZone.ondragleave = (e) => { dropZone.classList.remove('dragover'); };
-dropZone.ondrop = (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); uploadFiles(e.dataTransfer.files); };
-dropZone.onclick = () => document.getElementById('file').click();
+  const dropZone = document.getElementById('dropZone');
+  dropZone.ondragover = (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  };
+  dropZone.ondragleave = (e) => {
+    dropZone.classList.remove('dragover');
+  };
+  dropZone.ondrop = (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    document.getElementById('file').files = e.dataTransfer.files;
+    showConfirmationDialog();
+  };
+  dropZone.onclick = () => document.getElementById('file').click();
 </script>
 </html>
