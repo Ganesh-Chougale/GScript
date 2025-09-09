@@ -22,6 +22,7 @@
 <script>
 let folderConfig = {};
 let selectedFolderId = null;
+
 google.script.run.withSuccessHandler(htmlContent => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(htmlContent, 'text/html');
@@ -29,9 +30,11 @@ google.script.run.withSuccessHandler(htmlContent => {
   folderConfig = JSON.parse(jsonData);
   buildDropdown('folderDropdown', folderConfig);
 }).getFolderConfigHtml();
+
 function getNestedObj(obj, path) {
   return path.reduce((acc, key) => (acc && acc[key] ? acc[key] : null), obj);
 }
+
 function buildDropdown(containerId, obj, path=[]) {
   const container = document.getElementById(containerId);
   const select = document.createElement('select');
@@ -54,6 +57,7 @@ function buildDropdown(containerId, obj, path=[]) {
     }
   }
 }
+
 function uploadFiles(files=null) {
   const filesToUpload = files || document.getElementById('file').files;
   if (!selectedFolderId) { alert("Please select a folder!"); return; }
@@ -65,21 +69,18 @@ function uploadFiles(files=null) {
   for (let f of filesToUpload) {
     const reader = new FileReader();
     reader.onload = function(e) {
-      // Create a JavaScript object to send to the server-side function
-      const fileData = {
-        name: f.name,
-        type: f.type,
-        data: Array.from(new Uint8Array(e.target.result))
-      };
+      // Create a Blob from the ArrayBuffer and send it directly.
+      const blob = new Blob([e.target.result], { type: f.type });
       google.script.run.withSuccessHandler(msg => {
         document.getElementById('status').innerHTML += `<p>${msg}</p>`;
         uploaded++;
         progress.value = (uploaded / filesToUpload.length) * 100;
-      }).uploadFile(fileData, selectedFolderId);
+      }).uploadFile(f.name, blob, selectedFolderId);
     };
     reader.readAsArrayBuffer(f);
   }
 }
+
 const dropZone = document.getElementById('dropZone');
 dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
 dropZone.ondragleave = (e) => { dropZone.classList.remove('dragover'); };

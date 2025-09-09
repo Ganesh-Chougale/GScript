@@ -2,11 +2,10 @@ function doGet() {
   return HtmlService.createHtmlOutputFromFile('index')
                      .setTitle("Drive Upload Syncer");
 }
-function uploadFile(fileData, folderId) {
+function uploadFile(name, fileBlob, folderId) {
   try {
-    const fileBlob = Utilities.newBlob(fileData.data, fileData.type, fileData.name);
     const folder = DriveApp.getFolderById(folderId);
-    const files = folder.getFilesByName(fileData.name);
+    const files = folder.getFilesByName(name);
     const newSize = fileBlob.getBytes().length;
     
     if (files.hasNext()) {
@@ -14,18 +13,18 @@ function uploadFile(fileData, folderId) {
       const existingSize = existingFile.getSize();
       
       if (existingSize === newSize) {
-        return `Duplicate detected: ${fileData.name} (same size). Skipped upload.`;
+        return `Duplicate detected: ${name} (same size). Skipped upload.`;
       } else {
         existingFile.setTrashed(true);
         folder.createFile(fileBlob);
-        return `Replaced: ${fileData.name} (new size uploaded).`;
+        return `Replaced: ${name} (new size uploaded).`;
       }
     } else {
       folder.createFile(fileBlob);
-      return `Uploaded: ${fileData.name}`;
+      return `Uploaded: ${name}`;
     }
   } catch (e) {
-    return `Error uploading ${fileData.name}: ${e.message}`;
+    return `Error uploading ${name}: ${e.message}`;
   }
 }
 function getFolderConfigHtml() {
