@@ -22,64 +22,59 @@
 <script>
 let folderConfig = {};
 let selectedFolderId = null;
-
 google.script.run.withSuccessHandler(htmlContent => {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(htmlContent, 'text/html');
-  const jsonData = doc.getElementById('folderData').textContent;
-  folderConfig = JSON.parse(jsonData);
-  buildDropdown('folderDropdown', folderConfig);
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlContent, 'text/html');
+  const jsonData = doc.getElementById('folderData').textContent;
+  folderConfig = JSON.parse(jsonData);
+  buildDropdown('folderDropdown', folderConfig);
 }).getFolderConfigHtml();
-
 function getNestedObj(obj, path) {
-  return path.reduce((acc, key) => (acc && acc[key] ? acc[key] : null), obj);
+  return path.reduce((acc, key) => (acc && acc[key] ? acc[key] : null), obj);
 }
-
 function buildDropdown(containerId, obj, path=[]) {
-  const container = document.getElementById(containerId);
-  const select = document.createElement('select');
-  select.innerHTML = '<option value="">--Select Folder--</option>';
-  for (const key in obj) select.innerHTML += `<option value="${key}">${key}</option>`;
-  container.appendChild(select);
-  select.onchange = function() {
-    const existing = Array.from(container.querySelectorAll('select'));
-    const index = existing.indexOf(select);
-    existing.slice(index+1).forEach(e => e.remove());
-    const val = select.value;
-    if (!val) { selectedFolderId = null; return; }
-    const newPath = [...path, val];
-    const nextObj = getNestedObj(folderConfig, newPath);
-    if (typeof nextObj === 'string') {
-      selectedFolderId = nextObj;
-      console.log("Selected folder ID:", selectedFolderId);
-    } else if (typeof nextObj === 'object') {
-      buildDropdown(containerId, nextObj, newPath);
-    }
-  }
+  const container = document.getElementById(containerId);
+  const select = document.createElement('select');
+  select.innerHTML = '<option value="">--Select Folder--</option>';
+  for (const key in obj) select.innerHTML += `<option value="${key}">${key}</option>`;
+  container.appendChild(select);
+  select.onchange = function() {
+    const existing = Array.from(container.querySelectorAll('select'));
+    const index = existing.indexOf(select);
+    existing.slice(index+1).forEach(e => e.remove());
+    const val = select.value;
+    if (!val) { selectedFolderId = null; return; }
+    const newPath = [...path, val];
+    const nextObj = getNestedObj(folderConfig, newPath);
+    if (typeof nextObj === 'string') {
+      selectedFolderId = nextObj;
+      console.log("Selected folder ID:", selectedFolderId);
+    } else if (typeof nextObj === 'object') {
+      buildDropdown(containerId, nextObj, newPath);
+    }
+  }
 }
-
 function uploadFiles(files=null) {
-  const filesToUpload = files || document.getElementById('file').files;
-  if (!selectedFolderId) { alert("Please select a folder!"); return; }
-  if (!filesToUpload.length) { alert("Select at least one file!"); return; }
-  const names = Array.from(filesToUpload).map(f => f.name).join('\n');
-  if (!confirm("Upload these files?\n" + names)) return;
-  const progress = document.getElementById('progressBar');
-  let uploaded = 0;
-  for (let f of filesToUpload) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      // Send the Base64-encoded string and file metadata to the server.
-      google.script.run.withSuccessHandler(msg => {
-        document.getElementById('status').innerHTML += `<p>${msg}</p>`;
-        uploaded++;
-        progress.value = (uploaded / filesToUpload.length) * 100;
-      }).uploadFile(f.name, e.target.result, selectedFolderId);
-    };
-    reader.readAsDataURL(f);
-  }
+  const filesToUpload = files || document.getElementById('file').files;
+  if (!selectedFolderId) { alert("Please select a folder!"); return; }
+  if (!filesToUpload.length) { alert("Select at least one file!"); return; }
+  const names = Array.from(filesToUpload).map(f => f.name).join('\n');
+  if (!confirm("Upload these files?\n" + names)) return;
+  const progress = document.getElementById('progressBar');
+  let uploaded = 0;
+  for (let f of filesToUpload) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      // Send the Base64-encoded string, file metadata, and MIME type to the server.
+      google.script.run.withSuccessHandler(msg => {
+        document.getElementById('status').innerHTML += `<p>${msg}</p>`;
+        uploaded++;
+        progress.value = (uploaded / filesToUpload.length) * 100;
+      }).uploadFile(f.name, e.target.result, selectedFolderId, f.type);
+    };
+    reader.readAsDataURL(f);
+  }
 }
-
 const dropZone = document.getElementById('dropZone');
 dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
 dropZone.ondragleave = (e) => { dropZone.classList.remove('dragover'); };

@@ -2,7 +2,7 @@ function doGet() {
   return HtmlService.createHtmlOutputFromFile('index')
                      .setTitle("Drive Upload Syncer");
 }
-function uploadFile(name, data, folderId) {
+function uploadFile(name, data, folderId, fileType) {
   try {
     const folder = DriveApp.getFolderById(folderId);
     const files = folder.getFilesByName(name);
@@ -11,7 +11,8 @@ function uploadFile(name, data, folderId) {
     const decodedData = Utilities.base64Decode(data.split(',')[1]);
     
     // Use Utilities.newBlob() to convert the byte array into a Blob.
-    const fileBlob = Utilities.newBlob(decodedData, MimeType.JPEG, name);
+    // Use the dynamic fileType parameter instead of a hardcoded MimeType.
+    const fileBlob = Utilities.newBlob(decodedData, fileType, name);
     
     const newSize = fileBlob.getBytes().length;
     
