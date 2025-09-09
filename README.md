@@ -2,6 +2,6 @@
 
 ```bash
 git add .
-git commit -m "by name working"
+git commit -m "fine tuned"
 git push origin main
 ```  
