@@ -2,6 +2,6 @@
 
 ```bash
 git add .
-git commit -m "upload syncer css applied"
+git commit -m "saved"
 git push origin main
 ``` 
