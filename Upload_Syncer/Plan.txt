@@ -1,0 +1,120 @@
+Perfect! Using **`folders.html`** to store your folder JSON keeps your project clean and separates **configuration from logic**. Here’s the **updated phases & steps** for your project:
+
+---
+
+# 🚀 Updated Phases & Steps (folders.html approach)
+
+---
+
+## **Phase 1 – Setup & Basics**
+
+1. Open [script.google.com](https://script.google.com) → New Project.
+2. Keep default `Code.gs` with:
+
+```js
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('index');
+}
+```
+
+3. Add `index.html` (basic skeleton with file picker).
+4. Deploy Web App once (dev/test link).
+
+---
+
+## **Phase 2 – Add Folder Configuration File**
+
+1. Create a new HTML file: **`folders.html`**.
+2. Inside, store JSON as a `<script>` block:
+
+```html
+<script type="application/json" id="folderData">
+{
+  "Music": {
+    "Hindi": "FOLDER_ID_HINDI",
+    "Old Hindi": "FOLDER_ID_OLD_HINDI",
+    "Marathi": "FOLDER_ID_MARATHI",
+    "English": "FOLDER_ID_ENGLISH"
+  },
+  "Assets": {
+    "Chad & wojaks": "FOLDER_ID_CHAD",
+    "Devine Charm": "FOLDER_ID_DEV_CHARM",
+    "JwelleryAll": {
+      "Clothing": "FOLDER_ID_CLOTHING",
+      "Necklace": "FOLDER_ID_NECKLACE"
+    }
+  }
+}
+</script>
+```
+
+---
+
+## **Phase 3 – Dynamic Folder Dropdowns**
+
+1. In `index.html`, fetch JSON dynamically:
+
+```js
+function getFolderConfig() {
+  const folderHtml = HtmlService.createHtmlOutputFromFile('folders').getContent();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(folderHtml, 'text/html');
+  return JSON.parse(doc.getElementById('folderData').textContent);
+}
+```
+
+2. Build **nested dropdowns** (main folder → subfolder → sub-subfolder) from this JSON.
+3. This keeps folder hierarchy clean and easy to update.
+
+---
+
+## **Phase 4 – File Upload**
+
+1. User selects folder via dropdowns.
+2. JS determines **final folder ID** from JSON config.
+3. Sends file name + Base64 content + folderId to backend (`uploadFile`).
+4. Backend uploads file to Drive:
+
+```js
+function uploadFile(name, data, folderId) {
+  const folder = DriveApp.getFolderById(folderId);
+  const content = Utilities.base64Decode(data.split(',')[1]);
+  folder.createFile(content, name);
+  return "Uploaded: " + name;
+}
+```
+
+---
+
+## **Phase 5 – Duplicate Detection (Optional)**
+
+1. Check for duplicates **within selected folder**:
+
+   * Name
+   * File size
+   * MD5 checksum
+2. Ask user whether to **skip, overwrite, or rename**.
+
+---
+
+## **Phase 6 – UI/UX Enhancements (Optional)**
+
+* Show upload progress bar
+* Drag & drop file support
+* Nested folder visual tree
+* Batch upload confirmation
+
+---
+
+### ✅ Advantages of `folders.html` Approach
+
+* Keeps `Code.gs` & `index.html` clean.
+* Easy to update folder structure without touching logic.
+* Frontend can read folder config dynamically.
+* Scales well with large multi-layer folder structures.
+
+---
+
+If you want, I can **rewrite the full `index.html` + `Code.gs` snippet** using this **folders.html JSON approach**, including multi-layer dropdowns and upload logic ready to deploy.
+
+Do you want me to do that next?
