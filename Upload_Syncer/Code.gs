@@ -2,10 +2,17 @@ function doGet() {
   return HtmlService.createHtmlOutputFromFile('index')
                      .setTitle("Drive Upload Syncer");
 }
-function uploadFile(name, fileBlob, folderId) {
+function uploadFile(name, data, folderId) {
   try {
     const folder = DriveApp.getFolderById(folderId);
     const files = folder.getFilesByName(name);
+    
+    // Decode the Base64 string to a byte array.
+    const decodedData = Utilities.base64Decode(data.split(',')[1]);
+    
+    // Use Utilities.newBlob() to convert the byte array into a Blob.
+    const fileBlob = Utilities.newBlob(decodedData, MimeType.JPEG, name);
+    
     const newSize = fileBlob.getBytes().length;
     
     if (files.hasNext()) {

@@ -4,10 +4,14 @@ function doGet() {
   return HtmlService.createHtmlOutputFromFile('index')
                      .setTitle("Drive Upload Syncer");
 }
-function uploadFile(name, fileBlob, folderId) {
+function uploadFile(name, data, folderId) {
   try {
     const folder = DriveApp.getFolderById(folderId);
     const files = folder.getFilesByName(name);
+    // Decode the Base64 string to a byte array.
+    const decodedData = Utilities.base64Decode(data.split(',')[1]);
+    // Use Utilities.newBlob() to convert the byte array into a Blob.
+    const fileBlob = Utilities.newBlob(decodedData, MimeType.JPEG, name);
     const newSize = fileBlob.getBytes().length;
     if (files.hasNext()) {
       const existingFile = files.next();
@@ -142,15 +146,14 @@ function uploadFiles(files=null) {
   for (let f of filesToUpload) {
     const reader = new FileReader();
     reader.onload = function(e) {
-      // Create a Blob from the ArrayBuffer and send it directly.
-      const blob = new Blob([e.target.result], { type: f.type });
+      // Send the Base64-encoded string and file metadata to the server.
       google.script.run.withSuccessHandler(msg => {
         document.getElementById('status').innerHTML += `<p>${msg}</p>`;
         uploaded++;
         progress.value = (uploaded / filesToUpload.length) * 100;
-      }).uploadFile(f.name, blob, selectedFolderId);
+      }).uploadFile(f.name, e.target.result, selectedFolderId);
     };
-    reader.readAsArrayBuffer(f);
+    reader.readAsDataURL(f);
   }
 }
 const dropZone = document.getElementById('dropZone');

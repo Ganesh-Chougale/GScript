@@ -69,15 +69,14 @@ function uploadFiles(files=null) {
   for (let f of filesToUpload) {
     const reader = new FileReader();
     reader.onload = function(e) {
-      // Create a Blob from the ArrayBuffer and send it directly.
-      const blob = new Blob([e.target.result], { type: f.type });
+      // Send the Base64-encoded string and file metadata to the server.
       google.script.run.withSuccessHandler(msg => {
         document.getElementById('status').innerHTML += `<p>${msg}</p>`;
         uploaded++;
         progress.value = (uploaded / filesToUpload.length) * 100;
-      }).uploadFile(f.name, blob, selectedFolderId);
+      }).uploadFile(f.name, e.target.result, selectedFolderId);
     };
-    reader.readAsArrayBuffer(f);
+    reader.readAsDataURL(f);
   }
 }
 
